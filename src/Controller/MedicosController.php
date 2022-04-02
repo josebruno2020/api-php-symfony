@@ -2,104 +2,62 @@
 
 namespace App\Controller;
 
+use App\Entity\BaseEntity;
 use App\Entity\Medico;
 use App\Helper\MedicoFactory;
-use Doctrine\ORM\EntityManager;
+use App\Helper\RequestDataExtract;
+use App\Repository\EspecialidadeRepository;
+use App\Repository\MedicoRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\Persistence\ObjectRepository;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use http\Exception\InvalidArgumentException;
+use stdClass;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
 
-class MedicosController extends AbstractController
+class MedicosController extends BaseController
 {
-    private EntityManager $entityManager;
-    private ObjectRepository $repository;
-    private MedicoFactory $medicoFactory;
+    private EspecialidadeRepository $especialidadeRepository;
 
 
-    public function __construct(EntityManagerInterface $entityManager, MedicoFactory $medicoFactory)
+    public function __construct(EntityManagerInterface $entityManager,
+                                MedicoRepository $medicoRepository,
+                                MedicoFactory $medicoFactory,
+                                EspecialidadeRepository $especialidadeRepository, RequestDataExtract $requestDataExtract)
     {
-        $this->entityManager = $entityManager;
-        $this->medicoFactory = $medicoFactory;
+        $this->factory = $medicoFactory;
+        $this->repository = $medicoRepository;
+        parent::__construct($medicoRepository, 'Médicos', $entityManager, $medicoFactory, $requestDataExtract);
+        $this->especialidadeRepository = $especialidadeRepository;
     }
 
+
     /**
-     * @Route("/medicos", methods={"GET"})
+     * @Route("/especialidades/{especilidadeId}/medicos", methods={"GET"})
      */
-    public function index(Request $request): Response
+    public function findByEspecialidade(int $especilidadeId): Response
     {
-        $this->repository = $this->getDoctrine()->getRepository(Medico::class);
-        $medicos = $this->repository->findAll();
+        $medicos = $this->repository->findBy(
+            ['especialidade' => $especilidadeId]
+        );
         return new JsonResponse($medicos);
     }
 
     /**
-     * @Route("/medicos", methods={"POST"})
+     * @param Medico|null $existentEntity
+     * @param stdClass $newEntity
+     * @return void
      */
-    public function novo(Request $request): Response
+    protected function updateEntity(?BaseEntity $existentEntity, stdClass $newEntity): void
     {
-        $data = $request->getContent();
-        $medico = $this->medicoFactory->createMedico($data);
-        $this->entityManager->persist(
-            $medico
-        );
-        $this->entityManager->flush();
-        return new JsonResponse($medico);
-    }
-
-    /**
-     * @Route("/medicos/{id}", methods={"GET"})
-     */
-    public function show(int $id):Response
-    {
-        $medico = $this->getMedico($id);
-        $statusCode = $medico ?  Response::HTTP_OK : Response::HTTP_NO_CONTENT;
-
-        return new JsonResponse($medico, $statusCode);
-    }
-
-    /**
-     * @Route("/medicos/{id}", methods={"PUT"})
-     */
-    public function update(Request $request, int $id):Response
-    {
-        $data = $request->getContent();
-        $jsonData = json_decode($data);
-        $medico = $this->getMedico($id);
-
-        if (!$medico) {
-            return new Response('', Response::HTTP_NOT_FOUND);
+        if (!$existentEntity) {
+            throw new InvalidArgumentException("Recurso não encontrado");
         }
-
-        $medico->crm = $jsonData->crm;
-        $medico->nome = $jsonData->nome;
-        $this->entityManager->flush();
-
-        return new JsonResponse($medico);
-    }
-
-    /**
-     * @Route("/medicos/{id}", methods={"DELETE"})
-     */
-    public function delete(int $id): Response
-    {
-        $medico = $this->getMedico($id);
-        $this->entityManager->remove($medico);
-        $this->entityManager->flush();
-        return new JsonResponse('', Response::HTTP_NO_CONTENT);
-    }
-
-    /**
-     * @param int $id
-     * @return mixed|object|null
-     */
-    private function getMedico(int $id)
-    {
-        $this->repository = $this->getDoctrine()->getRepository(Medico::class);
-        return $this->repository->find($id);
+        $existentEntity->setNome($newEntity->nome)
+            ->setCrm($newEntity->crm)
+            ->setEspecialidade(
+                $this->especialidadeRepository->find($newEntity->especialidadeId)
+            );
     }
 }

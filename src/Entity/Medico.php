@@ -2,14 +2,14 @@
 
 namespace App\Entity;
 
+use App\Repository\MedicoRepository;
 use Doctrine\ORM\Mapping as ORM;
-use JetBrains\PhpStorm\Internal\TentativeType;
 
 /**
- * @ORM\Entity()
+ * @ORM\Entity(repositoryClass="App\Repository\MedicoRepository")
  * @ORM\Table(name="medicos")
  */
-class Medico implements \JsonSerializable
+class Medico extends BaseEntity implements \JsonSerializable
 {
     /**
      * @ORM\Id
@@ -93,7 +93,18 @@ class Medico implements \JsonSerializable
             'nome' => $this->getNome(),
             'crm' => $this->getCrm(),
             'especialidadeId' => $this->getEspecialidade()->getId(),
-            'especialidade' => $this->getEspecialidade()->getDescricao()
+            'especialidade' => $this->getEspecialidade()->getDescricao(),
+            '_links' => [
+                [
+                    'rel' => 'self',
+                    'path' => '/medicos/'.$this->getId()
+                ],
+                [
+                    'rel' => 'especialidade',
+                    'path' => '/especialidades/'.$this->getId()
+                ]
+
+            ]
         ];
     }
 }

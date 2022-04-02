@@ -2,90 +2,42 @@
 
 namespace App\Controller;
 
+use App\Entity\BaseEntity;
 use App\Entity\Especialidade;
+use App\Helper\EspecialidadeFactory;
+use App\Helper\RequestDataExtract;
 use App\Repository\EspecialidadeRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use http\Exception\InvalidArgumentException;
+use stdClass;
 
-class EspecialidadeController extends AbstractController
+class EspecialidadeController extends BaseController
 {
 
-    private EntityManagerInterface $entityManager;
     private EspecialidadeRepository $especialidadeRepository;
+    private EspecialidadeFactory $factory;
 
-    public function __construct(EntityManagerInterface $entityManager, EspecialidadeRepository $especialidadeRepository)
+    public function __construct(EspecialidadeRepository $especialidadeRepository,
+                                EntityManagerInterface $entityManager,
+                                EspecialidadeFactory $especialidadeFactory,
+    RequestDataExtract $requestDataExtract)
     {
-
-        $this->entityManager = $entityManager;
         $this->especialidadeRepository = $especialidadeRepository;
-    }
-
-    /**
-     * @Route("/especialidades", methods={"GET"})
-     */
-    public function index(): Response
-    {
-        return new JsonResponse(
-            [
-                'message' => 'Especialidades foram encontradas',
-                'content' => $this->especialidadeRepository->findAll()
-            ]
-        );
-    }
-
-    /**
-     * @Route("/especialidades/{id}", methods={"GET"})
-     */
-    public function show(int $id): Response
-    {
-        $especialidade = $this->especialidadeRepository->find($id);
-        $statusCode = $especialidade ? Response::HTTP_OK : Response::HTTP_NO_CONTENT;
-        return new JsonResponse(
-            $especialidade,
-            $statusCode
-        );
-    }
-
-    /**
-     * @Route("/especialidades", methods={"POST"})
-     */
-    public function create(Request $request): Response
-    {
-        $data = json_decode($request->getContent());
-
-        $especialidade = new Especialidade();
-        $especialidade->setDescricao($data->descricao);
-        $this->entityManager->persist($especialidade);
-        $this->entityManager->flush();
-
-        return new JsonResponse($especialidade, Response::HTTP_CREATED);
+        parent::__construct($especialidadeRepository, 'Especialidades', $entityManager, $especialidadeFactory, $requestDataExtract);
+        $this->factory = $especialidadeFactory;
     }
 
 
     /**
-     * @Route("/especialidades/{id}", methods={"PUT"})
+     * @param Especialidade|null $existentEntity
+     * @param stdClass $newEntity
+     * @return void
      */
-    public function update(int $id, Request $request): Response
+    protected function updateEntity(?BaseEntity $existentEntity, stdClass $newEntity): void
     {
-        $data = json_decode($request->getContent());
-        $especialidade = $this->especialidadeRepository->find($id);
-        $especialidade->setDescricao($data->descricao);
-        $this->entityManager->flush();
-        return new JsonResponse($especialidade);
-    }
-
-    /**
-     * @Route("/especialidades/{id}", methods={"DELETE"})
-     */
-    public function delete(int $id): Response
-    {
-        $especialidade = $this->especialidadeRepository->find($id);
-        $this->entityManager->remove($especialidade);
-        $this->entityManager->flush();
-        return new JsonResponse('', Response::HTTP_NO_CONTENT);
+        if (!$existentEntity) {
+            throw new InvalidArgumentException("Recurso não encontrado");
+        }
+        $existentEntity->setDescricao($newEntity->descricao);
     }
 }

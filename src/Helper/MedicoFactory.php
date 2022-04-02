@@ -5,7 +5,7 @@ namespace App\Helper;
 use App\Entity\Medico;
 use App\Repository\EspecialidadeRepository;
 
-class MedicoFactory
+class MedicoFactory implements FactoryInterface
 {
     private EspecialidadeRepository $especialidadeRepository;
 
@@ -14,7 +14,7 @@ class MedicoFactory
         $this->especialidadeRepository = $especialidadeRepository;
     }
 
-    public function createMedico(string $json): Medico
+    public function make(string $json): Medico
     {
         $jsonData = json_decode($json);
         $especialidade = $this->especialidadeRepository->find($jsonData->especialidadeId);

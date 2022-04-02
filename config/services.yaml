@@ -21,5 +21,12 @@ services:
             - '../src/Entity/'
             - '../src/Kernel.php'
 
+    App\Helper\ResponseFactory:
+        arguments:
+            $success: '%kernel.debug%'
+            $page: '%kernel.debug%'
+            $itemsPerPage: '%kernel.debug%'
+            $content: '%kernel.debug%'
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

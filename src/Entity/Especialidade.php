@@ -8,7 +8,7 @@ use Doctrine\ORM\Mapping as ORM;
 /**
  * @ORM\Entity(repositoryClass=Especialidade::class)
  */
-class Especialidade implements \JsonSerializable
+class Especialidade extends BaseEntity implements \JsonSerializable
 {
     /**
      * @ORM\Id
@@ -43,7 +43,17 @@ class Especialidade implements \JsonSerializable
     {
         return [
             'id' => $this->getId(),
-            'descricao' => $this->getDescricao()
+            'descricao' => $this->getDescricao(),
+            '_links' => [
+                [
+                    'rel' => 'self',
+                    'path' => "/especialidades/".$this->getId()
+                ],
+                [
+                    'rel' => 'medicos',
+                    'path' => "/especialidades/".$this->getId()."/medicos"
+                ]
+            ]
         ];
     }
 }
